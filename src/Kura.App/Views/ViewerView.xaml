@@ -1,0 +1,214 @@
+<UserControl x:Class="Kura.App.Views.ViewerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Kura.App.Controls"
+             xmlns:vm="clr-namespace:Kura.App.ViewModels"
+             xmlns:conv="clr-namespace:Kura.App.Converters"
+             Background="{StaticResource ScrimBrush}" Focusable="True" FocusVisualStyle="{x:Null}"
+             IsVisibleChanged="OnIsVisibleChanged">
+    <UserControl.Resources>
+        <conv:BoolToVisibility x:Key="BoolVis"/>
+        <conv:BoolToVisibility x:Key="InvBoolVis" Invert="True"/>
+        <conv:NullToVisibility x:Key="NullVis"/>
+        <Style x:Key="BarButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Padding" Value="9"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== Top bar ===== -->
+        <Grid Grid.Row="0" Margin="10,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource BarButton}" Command="{Binding CloseCommand}" ToolTip="Back to grid (Esc)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE72B;"/>
+                </Button>
+                <TextBlock Text="{Binding Current.Title}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock Text="{Binding PositionText}" Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center" Margin="12,0,0,0"
+                           FontSize="12.5"/>
+                <Border Margin="12,0,0,0" Padding="7,2" CornerRadius="4" Background="{StaticResource Surface2Brush}" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding QualityText}" FontSize="11" Foreground="{StaticResource TextDimBrush}"/>
+                </Border>
+                <Border Margin="8,0,0,0" Padding="7,2" CornerRadius="4" Background="{StaticResource AccentSoftBrush}" VerticalAlignment="Center"
+                        Visibility="{Binding Current.FormatBadge, Converter={StaticResource NullVis}}">
+                    <TextBlock Text="{Binding Current.FormatBadge}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                </Border>
+            </StackPanel>
+
+            <TextBlock Grid.Column="1" Text="{Binding Hint}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{StaticResource AccentBrush}" FontSize="12.5"/>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource BarButton}" Click="OnZoomOut" ToolTip="Zoom out (−)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE71F;"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Click="OnFit" ToolTip="Fit to window (Ctrl+0)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE9A6;"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Click="OnActual" ToolTip="Actual size (Ctrl+1)">
+                    <TextBlock Text="1:1" FontSize="12" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Click="OnZoomIn" ToolTip="Zoom in (+)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE8A3;"/>
+                </Button>
+                <Rectangle Width="1" Height="20" Fill="{StaticResource BorderBrush}" Margin="8,0"/>
+                <Button Style="{StaticResource BarButton}" Command="{Binding ToggleOriginalCommand}" ToolTip="Toggle sample / original (O)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE91B;"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Command="{Binding CopyFileUrlCommand}" ToolTip="Copy file link">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE8C8;"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Command="{Binding OpenPostPageCommand}" ToolTip="Open post page in browser">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE8A7;"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ===== Stage ===== -->
+        <Grid Grid.Row="1" x:Name="Stage">
+            <!-- Still / animated image -->
+            <c:ZoomPanel x:Name="Zoom" ResetToken="{Binding ResetZoomToken}">
+                <c:ZoomPanel.Style>
+                    <Style TargetType="c:ZoomPanel">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Content}" Value="{x:Static vm:ViewerContent.Video}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </c:ZoomPanel.Style>
+                <Image Source="{Binding Image}" Width="{Binding DisplayWidth}" Height="{Binding DisplayHeight}" Stretch="Fill"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+            </c:ZoomPanel>
+
+            <!-- Video: native surface lives only while attached (airspace rule); controls sit below it, never on top. -->
+            <c:VideoHost x:Name="Video" Url="{Binding VideoUrl}" Referer="{Binding Current.Referer}"
+                         ShouldAttach="{Binding VideoShouldBeAttached}" IsMuted="{Binding IsMuted}" Volume="{Binding Volume}">
+                <c:VideoHost.Style>
+                    <Style TargetType="c:VideoHost">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Content}" Value="{x:Static vm:ViewerContent.Video}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </c:VideoHost.Style>
+            </c:VideoHost>
+
+            <!-- Download progress -->
+            <ProgressBar VerticalAlignment="Top" Height="2" Minimum="0" Maximum="1" Value="{Binding Progress}"
+                         Visibility="{Binding IsLoadingFull, Converter={StaticResource BoolVis}}"/>
+
+            <!-- Previous / next hit areas (images only: nothing may sit over the video HWND) -->
+            <Button HorizontalAlignment="Left" Width="64" Margin="0,80" Style="{StaticResource GhostButton}" Focusable="False"
+                    Command="{Binding PreviousCommand}" Opacity="0.0" x:Name="PrevBtn" ToolTip="Previous (←)"
+                    Visibility="{Binding ElementName=Zoom, Path=Visibility}">
+                <TextBlock Style="{StaticResource IconText}" Text="&#xE76B;" FontSize="22"/>
+            </Button>
+            <Button HorizontalAlignment="Right" Width="64" Margin="0,80" Style="{StaticResource GhostButton}" Focusable="False"
+                    Command="{Binding NextCommand}" Opacity="0.0" x:Name="NextBtn" ToolTip="Next (→)"
+                    Visibility="{Binding ElementName=Zoom, Path=Visibility}"/>
+
+            <!-- Error -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20,16" CornerRadius="10" MaxWidth="520"
+                    Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource DangerBrush}" BorderThickness="1"
+                    Visibility="{Binding ErrorText, Converter={StaticResource NullVis}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Retry" Command="{Binding RetryCommand}" Focusable="False"/>
+                        <Button Content="Open post page" Margin="8,0,0,0" Command="{Binding OpenPostPageCommand}" Focusable="False"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ===== Video controls ===== -->
+        <Grid Grid.Row="2" Height="52" Margin="12,0">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Content}" Value="{x:Static vm:ViewerContent.Video}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource BarButton}" Command="{Binding PreviousCommand}" ToolTip="Previous (←)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE892;"/>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Click="OnTogglePlay" ToolTip="Play / pause (Space)">
+                    <TextBlock FontSize="16">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                <Setter Property="Text" Value="&#xE768;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPlaying, ElementName=Video}" Value="True">
+                                        <Setter Property="Text" Value="&#xE769;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+                <Button Style="{StaticResource BarButton}" Command="{Binding NextCommand}" ToolTip="Next (→)">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE893;"/>
+                </Button>
+            </StackPanel>
+            <Grid Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="PosText" FontSize="11.5" Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center" MinWidth="40"/>
+                <Slider x:Name="Seek" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="{Binding Duration, ElementName=Video}"
+                        IsMoveToPointEnabled="True" Focusable="False"
+                        Thumb.DragStarted="OnSeekDragStarted" Thumb.DragCompleted="OnSeekDragCompleted"
+                        PreviewMouseLeftButtonUp="OnSeekClicked"/>
+                <TextBlock x:Name="DurText" Grid.Column="2" FontSize="11.5" Foreground="{StaticResource TextDimBrush}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Grid.Column="2" Text="{Binding StatusText, ElementName=Video}" Foreground="{StaticResource TextDimBrush}"
+                       VerticalAlignment="Center" Margin="0,0,12,0" FontSize="12"/>
+            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource BarButton}" Click="OnToggleMute" ToolTip="Mute (M)">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                <Setter Property="Text" Value="&#xE767;"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMuted}" Value="True">
+                                        <Setter Property="Text" Value="&#xE74F;"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Button>
+                <Slider Width="90" Minimum="0" Maximum="100" Value="{Binding Volume}" VerticalAlignment="Center" Focusable="False"
+                        IsMoveToPointEnabled="True"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,128 @@
+<UserControl x:Class="Kura.App.Views.JustifiedGrid"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Kura.App.Controls"
+             xmlns:v="clr-namespace:Kura.App.Views"
+             xmlns:conv="clr-namespace:Kura.App.Converters"
+             Focusable="True" FocusVisualStyle="{x:Null}">
+    <UserControl.Resources>
+        <conv:BoolToVisibility x:Key="BoolVis"/>
+        <conv:NullToVisibility x:Key="NullVis"/>
+
+        <DataTemplate x:Key="CellTemplate" DataType="{x:Type v:GridCell}">
+            <Grid x:Name="Cell" Width="{Binding Width}" Height="{Binding Height}" Margin="{Binding Margin}" Cursor="Hand"
+                  MouseEnter="OnCellEnter" MouseLeftButtonUp="OnCellClick" Background="{StaticResource Surface2Brush}"
+                  c:RoundedClip.Radius="6" ToolTipService.InitialShowDelay="900">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open in viewer" Click="OnMenuOpenViewer"/>
+                        <MenuItem Header="Open post page in browser" Click="OnMenuOpenPage"/>
+                        <MenuItem Header="Copy post link" Click="OnMenuCopyPostUrl"/>
+                        <MenuItem Header="Copy file link" Click="OnMenuCopyFileUrl"/>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+
+                <!-- Placeholder glyph while loading / if there is no thumbnail -->
+                <TextBlock x:Name="Placeholder" Text="&#xEB9F;" FontFamily="{StaticResource IconFont}" FontSize="22"
+                           Foreground="{StaticResource Surface3Brush}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
+
+                <c:ThumbnailImage x:Name="Thumb" Url="{Binding Item.ThumbUrl}" Referer="{Binding Item.Referer}"
+                                  DecodeHeight="{Binding Height}"/>
+
+                <!-- Hover sheen + outline -->
+                <Border x:Name="Hover" BorderBrush="{StaticResource AccentBrush}" BorderThickness="2" CornerRadius="6" Opacity="0"
+                        IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0.55"/>
+                            <GradientStop Color="#AA000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <!-- Video play glyph -->
+                <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource OverlayChipBrush}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                        Visibility="{Binding Item.IsVideo, Converter={StaticResource BoolVis}}">
+                    <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                </Border>
+
+                <!-- Format badge -->
+                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6" Padding="6,1" CornerRadius="4"
+                        Background="{StaticResource OverlayChipBrush}" IsHitTestVisible="False"
+                        Visibility="{Binding Item.FormatBadge, Converter={StaticResource NullVis}}">
+                    <TextBlock Text="{Binding Item.FormatBadge}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                </Border>
+
+                <!-- Favorite -->
+                <TextBlock Text="&#xEB52;" FontFamily="{StaticResource IconFont}" FontSize="14" Foreground="#FF5D7A"
+                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" IsHitTestVisible="False"
+                           Visibility="{Binding Item.IsFavorite, Converter={StaticResource BoolVis}}"/>
+
+                <!-- Hover caption -->
+                <TextBlock x:Name="Caption" Text="{Binding Item.DimensionsText}" FontSize="11" Foreground="White" Opacity="0"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8,6" IsHitTestVisible="False"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Cell" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Hover" Property="Opacity" Value="1"/>
+                    <Setter TargetName="Caption" Property="Opacity" Value="1"/>
+                </Trigger>
+                <Trigger SourceName="Thumb" Property="Source" Value="{x:Null}">
+                    <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
+                </Trigger>
+                <Trigger SourceName="Thumb" Property="IsFailed" Value="True">
+                    <Setter TargetName="Placeholder" Property="Text" Value="&#xE7BA;"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding Item.ThumbUrl}" Value="{x:Null}">
+                    <Setter TargetName="Placeholder" Property="Text" Value="&#xE714;"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <Style x:Key="CellHost" TargetType="ContentPresenter">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Panel.ZIndex" Value="1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ItemsControl x:Name="Rows" Focusable="False"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  VirtualizingPanel.CacheLength="2,2"
+                  VirtualizingPanel.CacheLengthUnit="Page"
+                  ScrollViewer.CanContentScroll="True">
+        <ItemsControl.Template>
+            <ControlTemplate TargetType="ItemsControl">
+                <ScrollViewer x:Name="PART_Scroller" CanContentScroll="True" Focusable="False"
+                              VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled"
+                              Padding="{TemplateBinding Padding}">
+                    <ItemsPresenter/>
+                </ScrollViewer>
+            </ControlTemplate>
+        </ItemsControl.Template>
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <VirtualizingStackPanel Orientation="Vertical" Margin="16,0,6,16"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type v:GridRow}">
+                <ItemsControl ItemsSource="{Binding Cells}" Height="{Binding Height}" Margin="0,0,0,6" Focusable="False"
+                              ItemTemplate="{StaticResource CellTemplate}" ItemContainerStyle="{StaticResource CellHost}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

@@ -1,0 +1,24 @@
+{
+  // Per-host behaviour. Profiles match a host exactly or by suffix; longer (more specific) matches win.
+  "hosts": [
+    { "match": "donmai.us", "ratingTerm": "rating:g", "requestsPerSecond": 10 },
+    { "match": "donmai.moe", "ratingTerm": "rating:g", "requestsPerSecond": 10 },
+
+    { "match": "e621.net", "requestsPerSecond": 2 },
+    { "match": "e926.net", "requestsPerSecond": 2 },
+
+    {
+      "match": "gelbooru.com",
+      "gelbooruJson": true,
+      "ratingTerm": "rating:general",
+      "nativeAutocomplete": true,
+      "thumbnailFallbacks": [
+        { "from": "img2.gelbooru.com", "to": "img3.gelbooru.com" },
+        { "from": "img3.gelbooru.com", "to": "img1.gelbooru.com" },
+        { "from": "thumbs.gelbooru.com", "to": "img3.gelbooru.com/thumbnails" }
+      ]
+    },
+    { "match": "safebooru.org", "gelbooruJson": true, "ratingTerm": "rating:general" },
+    { "match": "rule34.xxx", "gelbooruJson": true, "cacheBuster": true }
+  ]
+}

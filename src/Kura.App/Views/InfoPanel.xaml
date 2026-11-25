@@ -1,0 +1,189 @@
+<UserControl x:Class="Kura.App.Views.InfoPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Kura.App.ViewModels"
+             xmlns:models="clr-namespace:Kura.Core.Models;assembly=Kura.Core"
+             xmlns:conv="clr-namespace:Kura.App.Converters"
+             Background="{StaticResource BgBrush}">
+    <UserControl.Resources>
+        <conv:TagCategoryToBrush x:Key="CatBrush"/>
+        <conv:NullToVisibility x:Key="NullVis"/>
+        <conv:NullToVisibility x:Key="InvNullVis" Invert="True"/>
+        <conv:BoolToVisibility x:Key="BoolVis"/>
+
+        <Style x:Key="Stat" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Surface2Brush}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}"/>
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+        <Style x:Key="LinkButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface2Brush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- Nothing focused -->
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24"
+                    Visibility="{Binding FocusedPost, Converter={StaticResource InvNullVis}, FallbackValue=Visible}">
+            <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconFont}" FontSize="28" HorizontalAlignment="Center"
+                       Foreground="{StaticResource TextFaintBrush}"/>
+            <TextBlock Text="Hover a post to see its details" Margin="0,10,0,0" Foreground="{StaticResource TextDimBrush}"
+                       TextAlignment="Center" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      DataContext="{Binding FocusedPost}"
+                      Visibility="{Binding Converter={StaticResource NullVis}, FallbackValue=Collapsed}">
+            <StackPanel Margin="16,14,12,20">
+                <!-- Header -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Title}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding ServerName}" FontSize="12" Foreground="{StaticResource TextDimBrush}" Margin="0,2,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Click="OnOpenPostPage"
+                            ToolTip="Open post page in browser">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8A7;"/>
+                    </Button>
+                </Grid>
+
+                <!-- Stats -->
+                <WrapPanel Margin="0,14,0,0">
+                    <Border Style="{StaticResource Stat}">
+                        <StackPanel>
+                            <TextBlock Text="RATING" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding RatingText}" Style="{StaticResource StatValue}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Stat}">
+                        <StackPanel>
+                            <TextBlock Text="SCORE" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding ScoreText}" Style="{StaticResource StatValue}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Stat}">
+                        <StackPanel>
+                            <TextBlock Text="SIZE" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding DimensionsText}" Style="{StaticResource StatValue}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Stat}" Visibility="{Binding FormatBadge, Converter={StaticResource NullVis}}">
+                        <StackPanel>
+                            <TextBlock Text="FORMAT" Style="{StaticResource StatLabel}"/>
+                            <TextBlock Text="{Binding FormatBadge}" Style="{StaticResource StatValue}" Foreground="{StaticResource AccentBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+                <TextBlock Text="{Binding CreatedText}" FontSize="11.5" Foreground="{StaticResource TextFaintBrush}" Margin="0,2,0,0"
+                           Visibility="{Binding CreatedText, Converter={StaticResource NullVis}}"/>
+
+                <!-- Tags -->
+                <ItemsControl ItemsSource="{Binding TagGroups}" Margin="0,4,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:TagGroup}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="7" Height="7" Margin="0,8,7,0" VerticalAlignment="Center"
+                                             Fill="{Binding Category, Converter={StaticResource CatBrush}}"/>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource SectionHeader}"/>
+                                    <TextBlock Text="{Binding Tags.Count}" Style="{StaticResource SectionHeader}" Margin="6,14,0,6"
+                                               Opacity="0.7"/>
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding Tags}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:Tag}">
+                                            <Button Style="{StaticResource TagButton}" Click="OnTagClick" MouseUp="OnTagMouseUp"
+                                                    ToolTip="Click: search · Ctrl+click: add · Alt+click: exclude · Middle-click: new tab">
+                                                <TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap" MaxWidth="260"
+                                                           Foreground="{Binding Category, Converter={StaticResource CatBrush}}"/>
+                                                <Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Search this tag" Click="OnTagMenuSearch"/>
+                                                        <MenuItem Header="Add to search" Click="OnTagMenuAdd"/>
+                                                        <MenuItem Header="Exclude from search" Click="OnTagMenuExclude"/>
+                                                        <MenuItem Header="Open in new tab" Click="OnTagMenuNewTab"/>
+                                                        <MenuItem Header="Copy tag" Click="OnTagMenuCopy"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Sources and links -->
+                <TextBlock Text="Source" Style="{StaticResource SectionHeader}"
+                           Visibility="{Binding Post.Source, Converter={StaticResource NullVis}}"/>
+                <ItemsControl ItemsSource="{Binding Sources}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource LinkButton}" Click="OnSourceClick" ToolTip="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding}" FontSize="12" Foreground="{StaticResource TextDimBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="250"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="Actions" Style="{StaticResource SectionHeader}"/>
+                <Button Style="{StaticResource LinkButton}" Click="OnCopyFileUrl">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource IconFont}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextDimBrush}"/>
+                        <TextBlock Text="Copy file link" FontSize="12.5"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource LinkButton}" Click="OnCopyPostUrl">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFont}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextDimBrush}"/>
+                        <TextBlock Text="Copy post link" FontSize="12.5"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
