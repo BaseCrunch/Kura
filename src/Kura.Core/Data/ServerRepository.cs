@@ -19,7 +19,7 @@ public sealed class ServerRepository(KuraDatabase db)
     public IReadOnlyList<Server> GetAll()
     {
         using var c = db.Open();
-        return c.Query<Server>($"SELECT {Columns} FROM servers ORDER BY is_default DESC, sort_order, name").AsList();
+        return c.Query<Server>($"SELECT {Columns} FROM servers ORDER BY is_default DESC, sort_order, id").AsList();
     }
 
     public Server? Get(long id)

@@ -130,3 +130,34 @@ public class CredentialStoreTests
         store.Delete(1); // deleting a missing credential is a no-op
     }
 }
+
+public class ServerPresetTests : IDisposable
+{
+    private readonly TempDatabase _t = new();
+    public void Dispose() => _t.Dispose();
+
+    [Fact]
+    public void Seeds_presets_once_and_respects_deletions()
+    {
+        var servers = new ServerRepository(_t.Db);
+        var settings = new SettingsRepository(_t.Db);
+        servers.EnsureDefault();
+        servers.Save(new Server { Name = "mine", Url = "https://e621.net", Engine = EngineType.E621 });
+
+        var added = ServerPresets.Seed(servers, settings);
+        Assert.Equal(ServerPresets.All.Count - 1, added); // e621 already configured
+        var all = servers.GetAll();
+        Assert.True(all[0].IsDefault);
+        Assert.Contains(all, s => s.Url == "https://derpibooru.org" && s.Engine == EngineType.Philomena && s.RatingFilterEnabled);
+        Assert.Equal("mine", all.Single(s => s.Url == "https://e621.net").Name);
+
+        var kemono = all.Single(s => s.Url == "https://kemono.cr");
+        servers.Delete(kemono.Id);
+        Assert.Equal(0, ServerPresets.Seed(servers, settings));
+        Assert.DoesNotContain(servers.GetAll(), s => s.Url == "https://kemono.cr");
+    }
+
+    [Fact]
+    public void Every_preset_engine_is_supported() =>
+        Assert.All(ServerPresets.All, s => Assert.True(Kura.Core.Engines.EngineRegistry.CreateDefault().IsSupported(s.Engine)));
+}

@@ -25,6 +25,7 @@ public sealed class AppServices : IDisposable
         Servers = new ServerRepository(Database);
         Servers.EnsureDefault();
         Settings = new SettingsRepository(Database);
+        ServerPresets.Seed(Servers, Settings);
         History = new SearchHistoryRepository(Database);
         TagCache = new TagCacheRepository(Database);
         Credentials = new WindowsCredentialStore();
