@@ -46,7 +46,7 @@ public sealed partial class GelbooruEngine : BooruEngineBase
         return $"&api_key={Uri.EscapeDataString(key)}&user_id={Uri.EscapeDataString(user)}";
     }
 
-    internal static (string? Key, string? UserId) ParseCredentials(string? apiKey, string? username)
+    public static (string? Key, string? UserId) ParseCredentials(string? apiKey, string? username)
     {
         if (apiKey is not null && apiKey.Contains("api_key=", StringComparison.OrdinalIgnoreCase))
         {

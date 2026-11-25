@@ -235,13 +235,18 @@ public sealed partial class SearchTabViewModel : ObservableObject
         _ = SearchAsync();
     }
 
-    private static string AppendToken(string query, string token)
+    /// <summary>The current server engine's term separator (" " or ", ").</summary>
+    private string Separator =>
+        _services.Client.Engines.IsSupported(SelectedServer.Engine) ? _services.Client.Engines.Get(SelectedServer.Engine).TagSeparator : " ";
+
+    private string AppendToken(string query, string token)
     {
-        var tokens = QueryPreprocessor.Tokenize(query).ToList();
+        var sep = Separator;
+        var tokens = QueryPreprocessor.Tokenize(query, sep).ToList();
         var bare = token.TrimStart('-');
         tokens.RemoveAll(t => t.TrimStart('-').Equals(bare, StringComparison.OrdinalIgnoreCase));
         tokens.Add(token);
-        return string.Join(' ', tokens);
+        return string.Join(sep, tokens);
     }
 
     public void OpenViewer(int index) => Viewer.Open(index);
@@ -253,7 +258,7 @@ public sealed partial class SearchTabViewModel : ObservableObject
     {
         _suggestCts?.Cancel();
         var cts = _suggestCts = new CancellationTokenSource();
-        var (token, _, _) = AutocompleteService.CurrentToken(text, caret);
+        var (token, _, _) = AutocompleteService.CurrentToken(text, caret, Separator);
         var (_, term) = AutocompleteService.SplitOperator(token);
         if (term.Length < 1)
         {
@@ -294,12 +299,13 @@ public sealed partial class SearchTabViewModel : ObservableObject
     public int ApplySuggestion(TagSuggestion s, int caret)
     {
         var text = QueryText;
-        var (token, start, length) = AutocompleteService.CurrentToken(text, caret);
+        var sep = Separator;
+        var (token, start, length) = AutocompleteService.CurrentToken(text, caret, sep);
         var (op, _) = AutocompleteService.SplitOperator(token);
-        var insert = s.FromHistory ? s.Name : op + s.Name;
-        var newText = text[..start] + insert + " " + text[(start + length)..].TrimStart();
-        QueryText = newText;
+        var insert = (s.FromHistory ? s.Name : op + s.Name) + sep;
+        var rest = text[(start + length)..].TrimStart(' ', ',');
+        QueryText = text[..start] + insert + rest;
         CloseSuggestions();
-        return start + insert.Length + 1;
+        return start + insert.Length;
     }
 }

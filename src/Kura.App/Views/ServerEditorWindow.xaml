@@ -87,7 +87,18 @@
                         <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"/>
 
                         <TextBlock Text="Engine" Style="{StaticResource FieldLabel}"/>
-                        <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" DisplayMemberPath="Name"/>
+                        <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" MaxDropDownHeight="420">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:EngineOption}">
+                                    <TextBlock Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                    <Setter Property="IsEnabled" Value="{Binding IsSupported}"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
 
                         <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
@@ -100,14 +111,14 @@
                                 <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="API key" Style="{StaticResource FieldLabel}"/>
+                                <TextBlock Text="{Binding SecretLabel}" Style="{StaticResource FieldLabel}"/>
                                 <PasswordBox x:Name="ApiKeyBox" PasswordChanged="OnApiKeyChanged"/>
                             </StackPanel>
                         </Grid>
                         <TextBlock Text="{Binding CredentialHint}" TextWrapping="Wrap" FontSize="11.5" Margin="0,8,0,0"
                                    Foreground="{StaticResource TextFaintBrush}"/>
                         <TextBlock TextWrapping="Wrap" FontSize="11.5" Margin="0,4,0,0" Foreground="{StaticResource TextFaintBrush}"
-                                   Text="The API key is stored in Windows Credential Manager, never in Kura's database."/>
+                                   Text="Keys and passwords are stored in Windows Credential Manager, never in Kura's database."/>
 
                         <CheckBox Content="Safe-rating filter (appends a safe rating term to every search)" Margin="0,18,0,0"
                                   IsChecked="{Binding RatingFilter}"/>
@@ -117,7 +128,7 @@
                             <Button Style="{StaticResource AccentButton}" Content="Save" Command="{Binding SaveCommand}" Padding="20,7" IsDefault="True"/>
                             <Button Content="Test connection" Command="{Binding TestCommand}" Margin="8,0,0,0"/>
                             <Button Style="{StaticResource DangerButton}" Content="Delete" Command="{Binding DeleteCommand}" Margin="8,0,0,0"
-                                    Visibility="{Binding IsDefault, Converter={StaticResource InvBoolVis}}"/>
+                                    Visibility="{Binding CanDelete, Converter={StaticResource BoolVis}}"/>
                         </StackPanel>
 
                         <Border Margin="0,16,0,0" Padding="12,9" CornerRadius="8" Background="{StaticResource Surface2Brush}"

@@ -26,7 +26,7 @@ public static class EngineTypeExtensions
 {
     public static string DisplayName(this EngineType t) => t switch
     {
-        EngineType.Danbooru1 => "Danbooru 1 / Moebooru",
+        EngineType.Danbooru1 => "Danbooru (1.x / Moebooru)",
         EngineType.Gelbooru => "Gelbooru 0.2",
         EngineType.Danbooru2 => "Danbooru 2",
         EngineType.Gelbooru011 => "Gelbooru 0.1.11",
@@ -34,7 +34,7 @@ public static class EngineTypeExtensions
         EngineType.ZeroChan => "Zerochan",
         EngineType.Rss => "RSS",
         EngineType.IBSearch => "IBSearch",
-        EngineType.Philomena => "Philomena",
+        EngineType.Philomena => "Philomena (Derpibooru)",
         EngineType.E621 => "e621",
         EngineType.Hydrus => "Hydrus",
         EngineType.BooruIO => "BooruIO",

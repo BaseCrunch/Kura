@@ -33,6 +33,8 @@ public sealed class Post
     public required long ServerId { get; init; }
     public required string RemoteId { get; init; }
     public string? PostUrl { get; init; }
+    /// <summary>Post title where the site has one (Kemono), shown in the info panel.</summary>
+    public string? Title { get; init; }
     public string? Md5 { get; init; }
     public string? Rating { get; init; }
     public int Score { get; init; }

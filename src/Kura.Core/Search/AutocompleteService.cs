@@ -13,13 +13,18 @@ public sealed class AutocompleteService(BooruClient client, SearchHistoryReposit
     public const int MaxResults = 10;
 
     /// <summary>Returns the token being typed at <paramref name="caret"/> and its span in <paramref name="text"/>.</summary>
-    public static (string Token, int Start, int Length) CurrentToken(string text, int caret)
+    /// <param name="separator">The engine's term separator; with ", " a token may contain spaces.</param>
+    public static (string Token, int Start, int Length) CurrentToken(string text, int caret, string separator = " ")
     {
         caret = Math.Clamp(caret, 0, text.Length);
+        Func<char, bool> isSep = QueryPreprocessor.IsCommaSeparated(separator) ? c => c == ',' : char.IsWhiteSpace;
         var start = caret;
-        while (start > 0 && !char.IsWhiteSpace(text[start - 1])) start--;
+        while (start > 0 && !isSep(text[start - 1])) start--;
         var end = caret;
-        while (end < text.Length && !char.IsWhiteSpace(text[end])) end++;
+        while (end < text.Length && !isSep(text[end])) end++;
+        // Trim surrounding spaces inside a comma-separated term.
+        while (start < end && char.IsWhiteSpace(text[start])) start++;
+        while (end > start && char.IsWhiteSpace(text[end - 1])) end--;
         return (text[start..end], start, end - start);
     }
 

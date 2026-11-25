@@ -2,6 +2,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.15" />
     <PackageVersion Include="Dapper" Version="2.1.100" />
+    <PackageVersion Include="AngleSharp" Version="1.11.0" />
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.15" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />

@@ -40,6 +40,14 @@ public sealed class KuraHttp : IDisposable
         };
     }
 
+    /// <summary>Test hook: sends through <paramref name="handler"/> with no rate limiting or retries.</summary>
+    internal KuraHttp(HttpMessageHandler handler)
+    {
+        Limiter = new HostRateLimiter();
+        Cookies = new CookieContainer();
+        Client = new HttpClient(handler, disposeHandler: true) { Timeout = Timeout.InfiniteTimeSpan };
+    }
+
     public HttpClient Client { get; }
     public CookieContainer Cookies { get; }
     public HostRateLimiter Limiter { get; }

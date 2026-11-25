@@ -7,6 +7,12 @@ using Kura.Core.Net;
 namespace Kura.Core.Search;
 
 /// <summary>Runs engine requests through the shared HTTP stack and maps failures to <see cref="BooruRequestException"/>.</summary>
+/// <summary>Engines whose connection test isn't "fetch one post" (e.g. Hydrus verifies its access key).</summary>
+public interface IPingable
+{
+    Task<string> PingAsync(EngineTransport transport, ServerContext ctx, CancellationToken ct);
+}
+
 public sealed class BooruClient(KuraHttp http, EngineRegistry engines, QuirkProfiles quirks)
 {
     public EngineRegistry Engines => engines;
@@ -17,7 +23,11 @@ public sealed class BooruClient(KuraHttp http, EngineRegistry engines, QuirkProf
         var q = quirks.Resolve(server.Host);
         var ctx = new ServerContext(server, credentials, q);
         if (engines.IsSupported(server.Engine))
-            http.Limiter.Configure(server.Host, q.RequestsPerSecond ?? engines.Get(server.Engine).DefaultRequestsPerSecond);
+        {
+            var engine = engines.Get(server.Engine);
+            http.Limiter.Configure(server.Host, q.RequestsPerSecond ?? engine.DefaultRequestsPerSecond);
+            engine.ConfigureCookies(http.Cookies, ctx);
+        }
         return ctx;
     }
 
@@ -29,13 +39,9 @@ public sealed class BooruClient(KuraHttp http, EngineRegistry engines, QuirkProf
     public async Task<PostPage> FetchPostsAsync(ServerContext ctx, PreparedQuery query, int page, CancellationToken ct)
     {
         var engine = engines.Get(ctx.Server.Engine);
-        using var req = KuraHttp.Get(engine.BuildPostsUrl(ctx, query, page));
-        engine.PrepareRequest(req, ctx);
-        using var resp = await http.SendAsync(req, ct).ConfigureAwait(false);
-        await using var body = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         try
         {
-            return await engine.ParsePostsAsync(body, ctx, ct).ConfigureAwait(false);
+            return await engine.FetchPageAsync(new EngineTransport(http, engine), ctx, query, page, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is JsonException or XmlException or FormatException or InvalidOperationException)
         {
@@ -67,6 +73,7 @@ public sealed class BooruClient(KuraHttp http, EngineRegistry engines, QuirkProf
     public async Task<string> PingAsync(ServerContext ctx, CancellationToken ct)
     {
         var engine = engines.Get(ctx.Server.Engine);
+        if (engine is IPingable pingable) return await pingable.PingAsync(new EngineTransport(http, engine), ctx, ct).ConfigureAwait(false);
         using var req = KuraHttp.Get(engine.BuildPingUrl(ctx));
         engine.PrepareRequest(req, ctx);
         using var resp = await http.SendAsync(req, ct, TimeSpan.FromSeconds(20)).ConfigureAwait(false);

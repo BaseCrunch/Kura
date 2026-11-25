@@ -68,6 +68,7 @@ public sealed partial class PostItemViewModel : ObservableObject
     public string? CreatedText => Post.CreatedAt?.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.CurrentCulture);
     public IReadOnlyList<string> Sources => SourceLinks.Split(Post.Source);
     public string Title => $"#{Post.RemoteId}";
+    public string? PostTitle => string.IsNullOrWhiteSpace(Post.Title) ? null : Post.Title;
 
     public IReadOnlyList<TagGroup> TagGroups => _groups ??= GroupOrder
         .Select(g => new TagGroup(g.Title, g.Cat, Tags.Where(t => Normalize(t.Category) == g.Cat).ToList()))

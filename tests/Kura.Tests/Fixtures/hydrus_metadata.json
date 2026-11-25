@@ -1,0 +1,57 @@
+{
+  "services": {
+    "616c6c206b6e6f776e2074616773": { "name": "all known tags", "type": 10, "type_pretty": "virtual combined tag service" },
+    "6d792074616773": { "name": "my tags", "type": 5, "type_pretty": "local tag service" },
+    "6661766f757269746573": { "name": "favourites", "type": 7, "type_pretty": "local like/dislike rating service" }
+  },
+  "metadata": [
+    {
+      "file_id": 1,
+      "hash": "1111111111111111111111111111111111111111111111111111111111111111",
+      "size": 123456,
+      "mime": "image/png",
+      "ext": ".png",
+      "width": 1200,
+      "height": 800,
+      "time_modified": 1795600000,
+      "known_urls": ["https://danbooru.donmai.us/posts/123", "https://x.com/artist/status/1"],
+      "detailed_known_urls": [
+        { "normalised_url": "https://danbooru.donmai.us/posts/123", "url_type": 0, "url_type_string": "post url" },
+        { "normalised_url": "https://gelbooru.com/index.php?id=9&page=post&s=view", "url_type": 0, "url_type_string": "post url" },
+        { "normalised_url": "https://cdn.example/file.png", "url_type": 2, "url_type_string": "file url" }
+      ],
+      "ratings": { "6661766f757269746573": true },
+      "tags": {
+        "6d792074616773": { "name": "my tags", "type": 5, "display_tags": { "0": ["blue sky"] } },
+        "616c6c206b6e6f776e2074616773": {
+          "name": "all known tags", "type": 10,
+          "storage_tags": { "0": ["creator:someone"] },
+          "display_tags": { "0": ["creator:someone", "character:alice", "series:wonderland", "blue sky", "meta:highres"] }
+        }
+      }
+    },
+    {
+      "file_id": 2,
+      "hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "mime": "video/webm",
+      "ext": ".webm",
+      "width": 640,
+      "height": 360,
+      "known_urls": [],
+      "detailed_known_urls": [],
+      "ratings": { "6661766f757269746573": null },
+      "tags": {
+        "616c6c206b6e6f776e2074616773": { "name": "all known tags", "type": 10, "display_tags": { "0": ["animated"] } }
+      }
+    },
+    {
+      "file_id": 3,
+      "hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "mime": "image/vnd.adobe.photoshop",
+      "ext": ".psd",
+      "width": 100,
+      "height": 100,
+      "tags": {}
+    }
+  ]
+}

@@ -8,8 +8,12 @@ public sealed class EngineRegistry
 
     public EngineRegistry(IEnumerable<IBooruEngine> engines) => _engines = engines.ToDictionary(e => e.Type);
 
-    /// <summary>Phase 1 engines.</summary>
-    public static EngineRegistry CreateDefault() => new([new Danbooru2Engine(), new GelbooruEngine(), new E621Engine()]);
+    /// <summary>Every engine the original app's server form offers.</summary>
+    public static EngineRegistry CreateDefault() => new(
+    [
+        new Danbooru2Engine(), new GelbooruEngine(), new E621Engine(), new Danbooru1Engine(), new Gelbooru011Engine(),
+        new PhilomenaEngine(), new BooruOnRailsEngine(), new HydrusEngine(), new ShimmieEngine(), new KemonoEngine(),
+    ]);
 
     public IReadOnlyCollection<EngineType> Supported => _engines.Keys;
 

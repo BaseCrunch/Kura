@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Dapper" />
+    <PackageReference Include="AngleSharp" />
     <PackageReference Include="System.Threading.RateLimiting" />
   </ItemGroup>
   <ItemGroup>
