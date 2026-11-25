@@ -15,6 +15,7 @@
         <conv:BoolToVisibility x:Key="BoolVis"/>
         <conv:BoolToVisibility x:Key="InvBoolVis" Invert="True"/>
         <conv:NullToVisibility x:Key="NullVis"/>
+        <conv:NullToVisibility x:Key="EmptyVis" Invert="True"/>
         <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
@@ -76,17 +77,12 @@
 
                 <!-- Form -->
                 <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="24,10,24,20">
-                        <TextBlock Text="{Binding Name, TargetNullValue='New server', FallbackValue='New server'}"
-                                   FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                    <StackPanel Margin="24,10,24,24" MaxWidth="560" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding Name, TargetNullValue='Server', FallbackValue='Server'}"
+                                   FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" Margin="0,6,0,4"/>
 
-                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
-
-                        <TextBlock Text="URL" Style="{StaticResource FieldLabel}"/>
-                        <TextBox Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"/>
-
-                        <TextBlock Text="Engine" Style="{StaticResource FieldLabel}"/>
+                        <!-- Type -->
+                        <TextBlock Text="Type" Style="{StaticResource FieldLabel}"/>
                         <ComboBox ItemsSource="{Binding Engines}" SelectedItem="{Binding Engine}" MaxDropDownHeight="420">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:EngineOption}">
@@ -100,38 +96,16 @@
                             </ComboBox.ItemContainerStyle>
                         </ComboBox>
 
-                        <Grid Margin="0,4,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel>
-                                <TextBlock Text="{Binding UsernameLabel}" Style="{StaticResource FieldLabel}"/>
-                                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="{Binding SecretLabel}" Style="{StaticResource FieldLabel}"/>
-                                <PasswordBox x:Name="ApiKeyBox" PasswordChanged="OnApiKeyChanged"/>
-                            </StackPanel>
+                        <!-- URL + validate -->
+                        <Grid Margin="0,14,0,0">
+                            <TextBox x:Name="UrlBox" Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="URL i.e. https://aboorusite.com" Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                       Foreground="{StaticResource TextFaintBrush}"
+                                       Visibility="{Binding Text, ElementName=UrlBox, Converter={StaticResource EmptyVis}}"/>
                         </Grid>
-                        <TextBlock Text="{Binding CredentialHint}" TextWrapping="Wrap" FontSize="11.5" Margin="0,8,0,0"
-                                   Foreground="{StaticResource TextFaintBrush}"/>
-                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Margin="0,4,0,0" Foreground="{StaticResource TextFaintBrush}"
-                                   Text="Keys and passwords are stored in Windows Credential Manager, never in Kura's database."/>
-
-                        <CheckBox Content="Safe-rating filter (appends a safe rating term to every search)" Margin="0,18,0,0"
-                                  IsChecked="{Binding RatingFilter}"/>
-                        <CheckBox Content="Autocomplete from this server" Margin="0,10,0,0" IsChecked="{Binding NativeAutocomplete}"/>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
-                            <Button Style="{StaticResource AccentButton}" Content="Save" Command="{Binding SaveCommand}" Padding="20,7" IsDefault="True"/>
-                            <Button Content="Test connection" Command="{Binding TestCommand}" Margin="8,0,0,0"/>
-                            <Button Style="{StaticResource DangerButton}" Content="Delete" Command="{Binding DeleteCommand}" Margin="8,0,0,0"
-                                    Visibility="{Binding CanDelete, Converter={StaticResource BoolVis}}"/>
-                        </StackPanel>
-
-                        <Border Margin="0,16,0,0" Padding="12,9" CornerRadius="8" Background="{StaticResource Surface2Brush}"
+                        <Button Content="Validate client" Command="{Binding TestCommand}" HorizontalAlignment="Right" Margin="0,10,0,0"
+                                Padding="16,7"/>
+                        <Border Margin="0,10,0,0" Padding="12,9" CornerRadius="8" Background="{StaticResource Surface2Brush}"
                                 Visibility="{Binding Status, Converter={StaticResource NullVis}}">
                             <TextBlock Text="{Binding Status}" TextWrapping="Wrap">
                                 <TextBlock.Style>
@@ -145,6 +119,35 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </Border>
+
+                        <!-- Filters -->
+                        <CheckBox Content="Rating filter enabled" Margin="0,18,0,0" IsChecked="{Binding RatingFilter}"/>
+                        <CheckBox Content="Autocomplete from this server" Margin="0,10,0,0" IsChecked="{Binding NativeAutocomplete}"/>
+
+                        <!-- Credentials -->
+                        <TextBlock Text="{Binding UsernameLabel}" Style="{StaticResource FieldLabel}" Margin="0,20,0,6"/>
+                        <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="{Binding SecretLabel}" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}"
+                                 Visibility="{Binding IsSecretMasked, Converter={StaticResource InvBoolVis}}"/>
+                        <PasswordBox x:Name="ApiKeyBox" PasswordChanged="OnApiKeyChanged"
+                                     Visibility="{Binding IsSecretMasked, Converter={StaticResource BoolVis}}"/>
+
+                        <TextBlock Text="{Binding CredentialHint}" TextWrapping="Wrap" FontSize="13" Margin="0,14,0,0" LineHeight="19"
+                                   Visibility="{Binding CredentialHint, Converter={StaticResource NullVis}}"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="11.5" Margin="0,8,0,0" Foreground="{StaticResource TextFaintBrush}"
+                                   Text="Keys and passwords are stored in Windows Credential Manager, never in Kura's database."/>
+
+                        <!-- Optional display name (the original derives it from the URL) -->
+                        <TextBlock Text="Name (optional)" Style="{StaticResource FieldLabel}" Margin="0,20,0,6"/>
+                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+
+                        <Grid Margin="0,24,0,0">
+                            <Button Style="{StaticResource DangerButton}" Content="Delete" Command="{Binding DeleteCommand}" HorizontalAlignment="Left"
+                                    Visibility="{Binding CanDelete, Converter={StaticResource BoolVis}}"/>
+                            <Button Style="{StaticResource AccentButton}" Content="Save" Command="{Binding SaveCommand}" Padding="28,8"
+                                    HorizontalAlignment="Right" IsDefault="True"/>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

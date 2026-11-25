@@ -59,10 +59,12 @@ public sealed partial class ServerEditorViewModel : ObservableObject
 
     public string UsernameLabel => Engine?.Type switch
     {
-        EngineType.Gelbooru => "User ID",
-        EngineType.Danbooru2 or EngineType.E621 or EngineType.Danbooru1 or null => "Username",
+        EngineType.Danbooru2 or EngineType.E621 or EngineType.Danbooru1 or EngineType.Gelbooru or null => "Username",
         _ => "Username (not used)",
     };
+
+    /// <summary>Only a real password is masked; API keys show as plain text, as in the original app.</summary>
+    public bool IsSecretMasked => Engine?.Type == EngineType.Danbooru1;
 
     /// <summary>Danbooru 1 signs in with a password (hashed per host); Hydrus calls its key an access key.</summary>
     public string SecretLabel => Engine?.Type switch
@@ -75,8 +77,8 @@ public sealed partial class ServerEditorViewModel : ObservableObject
 
     public string CredentialHint => Engine?.Type switch
     {
-        EngineType.Gelbooru => "Find your API key and user ID under My Account → Options on the site. You can also paste the whole " +
-                               "\"&api_key=…&user_id=…\" string into the API key field; Kura splits it on save. Leave both empty to browse anonymously.",
+        EngineType.Gelbooru => "Username and API Key may be required. API Key may be found on My Account > Options.\n\n" +
+                               "API Key should look like &api_key=xxxxx&user_id=xxxxx",
         EngineType.E621 => "Generate an API key under Account → Manage API Access. Your username is also sent in the User-Agent, as e621 requires.",
         EngineType.Danbooru2 => "Create an API key on your profile page (My Account → API Key). Optional for browsing.",
         EngineType.Danbooru1 => "Moebooru sites (konachan, yande.re…) sign in with your username and password. Only a salted hash of " +
@@ -96,6 +98,7 @@ public sealed partial class ServerEditorViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(UsernameLabel));
         OnPropertyChanged(nameof(SecretLabel));
+        OnPropertyChanged(nameof(IsSecretMasked));
         OnPropertyChanged(nameof(CredentialHint));
     }
 
@@ -144,21 +147,9 @@ public sealed partial class ServerEditorViewModel : ObservableObject
         Status = null;
     }
 
-    /// <summary>Splits a pasted Gelbooru "&amp;api_key=…&amp;user_id=…" string into the two fields.</summary>
-    private void NormalizeGelbooruCredentials()
-    {
-        if (Engine?.Type != EngineType.Gelbooru || !ApiKey.Contains("api_key=", StringComparison.OrdinalIgnoreCase)) return;
-        var (key, user) = Kura.Core.Engines.GelbooruEngine.ParseCredentials(ApiKey, string.IsNullOrWhiteSpace(Username) ? null : Username);
-        if (key is null) return;
-        ApiKey = key;
-        ApiKeyLoaded?.Invoke(key);
-        if (user is not null) Username = user;
-    }
-
     private Server? BuildFromForm(out string? error)
     {
         error = null;
-        NormalizeGelbooruCredentials();
         var url = Url.Trim().TrimEnd('/');
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
