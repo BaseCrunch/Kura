@@ -50,6 +50,14 @@ public sealed partial class SearchTabViewModel : ObservableObject
     [ObservableProperty] private PostItemViewModel? _focusedPost;
     [ObservableProperty] private bool _isSuggestOpen;
     [ObservableProperty] private int _selectedSuggestionIndex = -1;
+    [ObservableProperty] private bool _isPinned;
+
+    public void RefreshPinState() => IsPinned = _main.IsPinned(SelectedServer.Id, QueryText.Trim());
+
+    partial void OnQueryTextChanged(string value) => RefreshPinState();
+
+    [RelayCommand]
+    private void TogglePin() => _main.TogglePin(this);
 
     public bool IsEmpty => HasSearched && !IsLoading && Posts.Count == 0 && ErrorMessage is null;
     public int HiddenCount => _session?.HiddenTotal ?? 0;
@@ -76,7 +84,9 @@ public sealed partial class SearchTabViewModel : ObservableObject
 
     partial void OnSelectedServerChanged(Server value)
     {
-        if (value is null || _suppressServerSearch) return;
+        if (value is null) return;
+        RefreshPinState();
+        if (_suppressServerSearch) return;
         _services.Settings.Set(SettingKeys.LastServerId, value.Id);
         if (HasSearched) _ = SearchAsync();
     }

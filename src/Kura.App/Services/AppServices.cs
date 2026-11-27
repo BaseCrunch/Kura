@@ -28,6 +28,7 @@ public sealed class AppServices : IDisposable
         ServerPresets.Seed(Servers, Settings);
         History = new SearchHistoryRepository(Database);
         TagCache = new TagCacheRepository(Database);
+        Pins = new PinRepository(Database);
         Credentials = new WindowsCredentialStore();
 
         Http = new KuraHttp();
@@ -49,6 +50,7 @@ public sealed class AppServices : IDisposable
     public SettingsRepository Settings { get; }
     public SearchHistoryRepository History { get; }
     public TagCacheRepository TagCache { get; }
+    public PinRepository Pins { get; }
     public ICredentialStore Credentials { get; }
     public KuraHttp Http { get; }
     public BooruClient Client { get; }

@@ -2,11 +2,20 @@ using Dapper;
 
 namespace Kura.Core.Data;
 
-public sealed record SearchHistoryEntry(long Id, string Query, string SearchedAt, long Starred, long UseCount);
+public sealed record SearchHistoryEntry(long Id, string Query, string SearchedAt, long Starred, long UseCount, long? ServerId)
+{
+    public bool IsStarred => Starred != 0;
+
+    public DateTimeOffset? When =>
+        DateTimeOffset.TryParse(SearchedAt, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal, out var d) ? d : null;
+}
 
 /// <summary>Search history. A query is recorded once per new search, not per page (fixes SPEC 4.1 N10).</summary>
 public sealed class SearchHistoryRepository(KuraDatabase db)
 {
+    private const string Columns = "id, query, searched_at, starred, use_count, server_id";
+
     public void Record(string query, long? serverId)
     {
         query = query.Trim();
@@ -27,11 +36,33 @@ public sealed class SearchHistoryRepository(KuraDatabase db)
         using var c = db.Open();
         var like = "%" + Sql.EscapeLike(term.ToLowerInvariant()) + "%";
         return c.Query<SearchHistoryEntry>(
-            """
-            SELECT id, query, searched_at, starred, use_count FROM search_history
-            WHERE query_lower LIKE @like ESCAPE '\'
-            ORDER BY starred DESC, searched_at DESC LIMIT @limit
-            """, new { like, limit }).AsList();
+            $"""
+             SELECT {Columns} FROM search_history
+             WHERE query_lower LIKE @like ESCAPE '\'
+             ORDER BY starred DESC, searched_at DESC LIMIT @limit
+             """, new { like, limit }).AsList();
+    }
+
+    /// <summary>The history list: starred first, then most recent (SPEC 2.1).</summary>
+    public IReadOnlyList<SearchHistoryEntry> Recent(int limit) => Find("", limit);
+
+    public void SetStarred(long id, bool starred)
+    {
+        using var c = db.Open();
+        c.Execute("UPDATE search_history SET starred = @s WHERE id = @id", new { id, s = starred ? 1 : 0 });
+    }
+
+    public void Delete(long id)
+    {
+        using var c = db.Open();
+        c.Execute("DELETE FROM search_history WHERE id = @id", new { id });
+    }
+
+    /// <summary>Clears history but keeps starred searches.</summary>
+    public int ClearUnstarred()
+    {
+        using var c = db.Open();
+        return c.Execute("DELETE FROM search_history WHERE starred = 0");
     }
 }
 

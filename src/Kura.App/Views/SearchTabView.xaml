@@ -25,6 +25,7 @@
                 <ColumnDefinition Width="220"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <ComboBox x:Name="ServerBox" ItemsSource="{Binding Main.Servers}" SelectedItem="{Binding SelectedServer}"
@@ -98,7 +99,34 @@
                 </Popup>
             </Grid>
 
-            <Button Grid.Column="2" Style="{StaticResource AccentButton}" Command="{Binding SearchCommand}" Padding="18,7">
+            <ToggleButton Grid.Column="2" Margin="0,0,8,0" Padding="10"
+                          IsChecked="{Binding IsPinned, Mode=OneWay}" Command="{Binding TogglePinCommand}">
+                <TextBlock FontSize="15">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                            <Setter Property="Text" Value="&#xE718;"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                    <Setter Property="Text" Value="&#xE840;"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton" BasedOn="{StaticResource GhostButton}">
+                        <Setter Property="ToolTip" Value="Pin this search to Home"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                <Setter Property="ToolTip" Value="Unpin from Home"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+
+            <Button Grid.Column="3" Style="{StaticResource AccentButton}" Command="{Binding SearchCommand}" Padding="18,7">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Search" Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
                 </StackPanel>

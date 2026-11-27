@@ -24,6 +24,8 @@
         <KeyBinding Key="Tab" Modifiers="Control+Shift" Command="{Binding PreviousTabCommand}"/>
         <KeyBinding Key="I" Modifiers="Control" Command="{Binding ToggleInfoPanelCommand}"/>
         <KeyBinding Key="F5" Command="{Binding ReloadCommand}"/>
+        <KeyBinding Key="H" Modifiers="Control" Command="{Binding History.ToggleCommand}"/>
+        <KeyBinding Key="Home" Modifiers="Alt" Command="{Binding ShowHomeCommand}"/>
     </Window.InputBindings>
 
     <Border x:Name="Root" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
@@ -53,6 +55,35 @@
 
                 <!-- Tabs (hit-testable inside the caption area) -->
                 <DockPanel Grid.Column="1" LastChildFill="False" Margin="4,6,0,0">
+                    <Border x:Name="HomeTab" DockPanel.Dock="Left" Height="34" Width="44" Margin="0,0,2,0" CornerRadius="8,8,0,0" Cursor="Hand"
+                            MouseLeftButtonDown="OnHomeTabClick" ToolTip="Home: pinned searches (Alt+Home)"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource Surface2Brush}"/>
+                                    </Trigger>
+                                    <DataTrigger Binding="{Binding IsHomeSelected}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="&#xE80F;" FontFamily="{StaticResource IconFont}" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsHomeSelected}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
                     <ScrollViewer DockPanel.Dock="Left" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                                   x:Name="TabScroller" PreviewMouseWheel="OnTabStripWheel"
                                   WindowChrome.IsHitTestVisibleInChrome="True">
@@ -114,6 +145,15 @@
                 </DockPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource GhostButton}" ToolTip="Search history (Ctrl+H)"
+                                  IsChecked="{Binding History.IsOpen}" WindowChrome.IsHitTestVisibleInChrome="True">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE81C;"/>
+                    </ToggleButton>
+                    <Popup x:Name="HistoryPopup" IsOpen="{Binding History.IsOpen}" PlacementTarget="{Binding ElementName=HistoryButton}"
+                           Placement="Bottom" HorizontalOffset="-300" StaysOpen="False" AllowsTransparency="True"
+                           Opened="OnHistoryOpened" Closed="OnHistoryClosed">
+                        <v:HistoryPanel DataContext="{Binding History}"/>
+                    </Popup>
                     <Button Style="{StaticResource GhostButton}" Command="{Binding ToggleInfoPanelCommand}" ToolTip="Toggle info panel (Ctrl+I)"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE90C;"/>
@@ -157,6 +197,9 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+
+                <v:HomeView DataContext="{Binding Home}"
+                            Visibility="{Binding DataContext.IsHomeSelected, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolVis}}"/>
 
                 <GridSplitter x:Name="Splitter" Grid.Column="1" Width="5" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"
                               Cursor="SizeWE" DragCompleted="OnSplitterDragCompleted"

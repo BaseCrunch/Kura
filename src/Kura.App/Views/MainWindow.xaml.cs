@@ -75,6 +75,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnHomeTabClick(object sender, MouseButtonEventArgs e) => Vm.ShowHome();
+
+    private IDisposable? _historyToken;
+
+    // The history flyout is a popup: count it as an overlay so a playing video detaches (airspace rule).
+    private void OnHistoryOpened(object? sender, EventArgs e) => _historyToken ??= Vm.Services.Overlay.Enter();
+
+    private void OnHistoryClosed(object? sender, EventArgs e)
+    {
+        _historyToken?.Dispose();
+        _historyToken = null;
+        Vm.History.IsOpen = false;
+    }
+
     private void OnTabStripWheel(object sender, MouseWheelEventArgs e)
     {
         TabScroller.ScrollToHorizontalOffset(TabScroller.HorizontalOffset - e.Delta);

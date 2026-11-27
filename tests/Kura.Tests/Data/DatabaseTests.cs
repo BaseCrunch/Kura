@@ -161,3 +161,52 @@ public class ServerPresetTests : IDisposable
     public void Every_preset_engine_is_supported() =>
         Assert.All(ServerPresets.All, s => Assert.True(Kura.Core.Engines.EngineRegistry.CreateDefault().IsSupported(s.Engine)));
 }
+
+public class PinAndHistoryTests : IDisposable
+{
+    private readonly TempDatabase _t = new();
+    public void Dispose() => _t.Dispose();
+
+    [Fact]
+    public void Pins_add_dedupe_reorder_rename_remove()
+    {
+        var servers = new ServerRepository(_t.Db);
+        var s = servers.EnsureDefault();
+        var pins = new PinRepository(_t.Db);
+
+        var a = pins.Add(s.Id, " blue_sky ");
+        var b = pins.Add(s.Id, "cat_ears");
+        Assert.Equal(a.Id, pins.Add(s.Id, "BLUE_SKY").Id); // same server + query is one pin
+        Assert.Equal(["blue_sky", "cat_ears"], pins.GetAll().Select(p => p.Query));
+        Assert.Equal("Latest posts", pins.Add(s.Id, "").Title);
+
+        pins.Move(b.Id, -1);
+        Assert.Equal(["cat_ears", "blue_sky", ""], pins.GetAll().Select(p => p.Query));
+        pins.Rename(b.Id, "Cats");
+        Assert.Equal("Cats", pins.GetAll()[0].Title);
+        pins.Remove(a.Id);
+        Assert.Null(pins.Find(s.Id, "blue_sky"));
+
+        servers.Save(new Server { Name = "x", Url = "https://x.test", Engine = EngineType.Danbooru2 });
+        var other = servers.GetAll().Single(x => x.Url == "https://x.test");
+        pins.Add(other.Id, "q");
+        servers.Delete(other.Id); // pins of a deleted server go with it
+        Assert.DoesNotContain(pins.GetAll(), p => p.ServerId == other.Id);
+    }
+
+    [Fact]
+    public void History_star_delete_and_clear_keeps_starred()
+    {
+        var h = new SearchHistoryRepository(_t.Db);
+        h.Record("one", null);
+        h.Record("two", null);
+        h.Record("three", null);
+        var two = h.Recent(10).Single(e => e.Query == "two");
+        h.SetStarred(two.Id, true);
+        Assert.Equal("two", h.Recent(10)[0].Query); // starred first
+        Assert.True(h.Recent(10)[0].IsStarred);
+        h.Delete(h.Recent(10).Single(e => e.Query == "one").Id);
+        Assert.Equal(1, h.ClearUnstarred());
+        Assert.Equal(["two"], h.Recent(10).Select(e => e.Query));
+    }
+}
