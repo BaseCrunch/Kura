@@ -328,3 +328,54 @@ public class SeparatorTests
             Assert.True(r.IsSupported(t), t.ToString());
     }
 }
+
+public class Rule34XxxTests
+{
+    private readonly GelbooruEngine _e = new();
+
+    [Fact]
+    public void Searches_go_to_the_api_host_with_credentials()
+    {
+        var ctx = Fx.Ctx(EngineType.Gelbooru, "https://rule34.xxx", key: "&api_key=k&user_id=1");
+        var url = _e.BuildPostsUrl(ctx, new PreparedQuery("x", "x", false), 0).AbsoluteUri;
+        Assert.StartsWith("https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1", url);
+        Assert.EndsWith("&api_key=k&user_id=1", url);
+        Assert.StartsWith("https://rule34.xxx/index.php?page=post&s=view", _e.PostPageUrl(ctx, "5"));
+        Assert.StartsWith("https://rule34.xxx/autocomplete.php", _e.BuildAutocompleteUrl(ctx, "ha")!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task Missing_authentication_is_an_error_not_an_empty_page()
+    {
+        var ctx = Fx.Ctx(EngineType.Gelbooru, "https://rule34.xxx");
+        var ex = await Assert.ThrowsAsync<BooruRequestException>(() =>
+            _e.ParsePostsAsync(Fx.Text("\"Missing authentication. Go to api.rule34.xxx for more information\""), ctx, default));
+        Assert.Equal(FailureKind.InvalidCredentials, ex.Kind);
+        // Other server messages are still just messages.
+        Assert.Equal("Too deep!", (await _e.ParsePostsAsync(Fx.Text("\"Too deep!\""), ctx, default)).ServerMessage);
+    }
+
+    [Fact]
+    public async Task Autocomplete_reads_category_from_type()
+    {
+        var tags = await _e.ParseAutocompleteAsync(Fx.Text(
+            "[{\"label\":\"hatsune_miku (42365)\",\"value\":\"hatsune_miku\",\"type\":\"character\"}," +
+            "{\"label\":\"blue_eyes (9)\",\"value\":\"blue_eyes\",\"type\":\"general\"}]"),
+            Fx.Ctx(EngineType.Gelbooru, "https://rule34.xxx"), default);
+        Assert.Equal(2, tags.Count);
+        Assert.Equal((TagCategory.Character, 42365L), (tags[0].Category, tags[0].PostCount));
+        Assert.Equal(TagCategory.General, tags[1].Category);
+    }
+
+    [Theory]
+    [InlineData("rule34.xxx", EngineType.Gelbooru)]
+    [InlineData("api.rule34.xxx", EngineType.Gelbooru)]
+    [InlineData("yande.re", EngineType.Danbooru1)]
+    [InlineData("derpibooru.org", EngineType.Philomena)]
+    [InlineData("safebooru.donmai.us", EngineType.Danbooru2)]
+    public void Known_sites_have_an_engine_hint(string host, EngineType engine) =>
+        Assert.Equal(engine, Fx.Quirks.Resolve(host).Engine);
+
+    [Fact]
+    public void Unknown_sites_have_no_hint() => Assert.Null(Fx.Quirks.Resolve("my-own-booru.example").Engine);
+}

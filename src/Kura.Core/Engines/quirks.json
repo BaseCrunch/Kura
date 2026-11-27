@@ -1,7 +1,7 @@
 {
   // Per-host behaviour. Profiles match a host exactly or by suffix; longer (more specific) matches win.
   "hosts": [
-    { "match": "donmai.us", "ratingTerm": "rating:g", "requestsPerSecond": 10 },
+    { "match": "donmai.us", "engine": "Danbooru2", "ratingTerm": "rating:g", "requestsPerSecond": 10 },
     { "match": "donmai.moe", "ratingTerm": "rating:g", "requestsPerSecond": 10 },
 
     { "match": "e621.net", "requestsPerSecond": 2 },
@@ -19,6 +19,35 @@
       ]
     },
     { "match": "safebooru.org", "gelbooruJson": true, "ratingTerm": "rating:general" },
-    { "match": "rule34.xxx", "gelbooruJson": true, "cacheBuster": true }
+    // rule34.xxx answers API clients on its main host with a CAPTCHA; the API (key required) is api.rule34.xxx.
+    { "match": "rule34.xxx", "engine": "Gelbooru", "gelbooruJson": true, "cacheBuster": true, "apiBase": "https://api.rule34.xxx" },
+
+    // Engine hints: the server editor pre-selects the right type for these sites.
+    { "match": "donmai.moe", "engine": "Danbooru2" },
+    { "match": "aibooru.online", "engine": "Danbooru2" },
+    { "match": "gelbooru.com", "engine": "Gelbooru" },
+    { "match": "safebooru.org", "engine": "Gelbooru" },
+    { "match": "xbooru.com", "engine": "Gelbooru" },
+    { "match": "tbib.org", "engine": "Gelbooru" },
+    { "match": "hypnohub.net", "engine": "Gelbooru" },
+    { "match": "realbooru.com", "engine": "Gelbooru" },
+    { "match": "konachan.com", "engine": "Danbooru1" },
+    { "match": "konachan.net", "engine": "Danbooru1" },
+    { "match": "yande.re", "engine": "Danbooru1" },
+    { "match": "sakugabooru.com", "engine": "Danbooru1" },
+    { "match": "lolibooru.moe", "engine": "Danbooru1" },
+    { "match": "e621.net", "engine": "E621" },
+    { "match": "e926.net", "engine": "E621" },
+    { "match": "derpibooru.org", "engine": "Philomena" },
+    { "match": "furbooru.org", "engine": "Philomena" },
+    { "match": "manebooru.art", "engine": "Philomena" },
+    { "match": "ponybooru.org", "engine": "Philomena" },
+    { "match": "twibooru.org", "engine": "BooruOnRails" },
+    { "match": "kemono.cr", "engine": "Kemono" },
+    { "match": "kemono.su", "engine": "Kemono" },
+    { "match": "coomer.st", "engine": "Kemono" },
+    { "match": "rule34.paheal.net", "engine": "Shimmie" },
+    { "match": "shimmie.shishnet.org", "engine": "Shimmie" },
+    { "match": "rule34.us", "engine": "Gelbooru011" }
   ]
 }

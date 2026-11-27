@@ -94,6 +94,26 @@ public sealed partial class ServerEditorViewModel : ObservableObject
         _ => "",
     };
 
+    private bool _settingEngine;
+
+    /// <summary>Known sites pick their engine as the URL is typed (new servers, or the type wasn't chosen by hand).</summary>
+    partial void OnUrlChanged(string value)
+    {
+        if (_settingEngine || !IsNew) return;
+        SuggestEngineFor(value, announce: true);
+    }
+
+    private void SuggestEngineFor(string url, bool announce)
+    {
+        if (_services.Client.KnownEngine(url.Trim()) is not { } known || Engine?.Type == known) return;
+        var option = Engines.FirstOrDefault(e => e.Type == known && e.IsSupported);
+        if (option is null) return;
+        _settingEngine = true;
+        Engine = option;
+        _settingEngine = false;
+        if (announce) SetStatus($"{new Uri(url.Trim()).Host} runs {option.Name}, so the type was set for you.", false);
+    }
+
     partial void OnEngineChanged(EngineOption? value)
     {
         OnPropertyChanged(nameof(UsernameLabel));
@@ -121,6 +141,12 @@ public sealed partial class ServerEditorViewModel : ObservableObject
         var creds = _services.Credentials.Get(value.Id);
         ApiKey = creds.ApiKey ?? creds.Password ?? "";
         ApiKeyLoaded?.Invoke(ApiKey);
+        // A saved server set to the wrong type (e.g. rule34.xxx as Danbooru 2): correct it and say so.
+        if (_services.Client.KnownEngine(value.Url) is { } known && known != value.Engine)
+        {
+            SuggestEngineFor(value.Url, announce: false);
+            SetStatus($"{value.Host} runs {Engine?.Name}, not {value.Engine.DisplayName()}. The type was corrected; click Save to keep it.", false);
+        }
     }
 
     private void Reload(long? selectId = null)
@@ -228,7 +254,22 @@ public sealed partial class ServerEditorViewModel : ObservableObject
             var msg = await _services.Client.PingAsync(ctx, cts.Token);
             SetStatus(msg, false);
         }
-        catch (BooruRequestException ex) { SetStatus(ex.Message, true); }
+        catch (BooruRequestException ex) when (ex.Kind is FailureKind.InvalidCredentials) { SetStatus(ex.Message, true); }
+        catch (BooruRequestException ex)
+        {
+            // Wrong type is the usual cause of a 403/404/unreadable reply: try the other engines.
+            SetStatus($"{ex.Message} Checking whether the site runs a different engine…", true);
+            var creds = CredentialsFromForm(server.Engine);
+            var found = await _services.Client.DetectEngineAsync(server, creds, cts.Token);
+            if (found is { } engine && engine != server.Engine && Engines.FirstOrDefault(e => e.Type == engine) is { } option)
+            {
+                _settingEngine = true;
+                Engine = option;
+                _settingEngine = false;
+                SetStatus($"This site runs {option.Name}. The type was switched; click Validate client again, then Save.", false);
+            }
+            else SetStatus(ex.Message, true);
+        }
         catch (OperationCanceledException) { }
         finally { IsTesting = false; }
     }

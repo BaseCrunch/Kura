@@ -20,6 +20,10 @@ public sealed record HostQuirks
     public double? RequestsPerSecond { get; init; }
     public string? UserAgent { get; init; }
     public bool NativeAutocomplete { get; init; }
+    /// <summary>Where the API lives when it isn't the site itself (rule34.xxx serves its API from api.rule34.xxx).</summary>
+    public string? ApiBase { get; init; }
+    /// <summary>The engine this site runs, used to pre-select the server type.</summary>
+    public Models.EngineType? Engine { get; init; }
     public IReadOnlyList<UrlRewrite> ThumbnailFallbacks { get; init; } = [];
 
     /// <summary>Overlays <paramref name="more"/> (more specific) on top of this profile.</summary>
@@ -32,6 +36,8 @@ public sealed record HostQuirks
         RequestsPerSecond = more.RequestsPerSecond ?? RequestsPerSecond,
         UserAgent = more.UserAgent ?? UserAgent,
         NativeAutocomplete = more.NativeAutocomplete || NativeAutocomplete,
+        ApiBase = more.ApiBase ?? ApiBase,
+        Engine = more.Engine ?? Engine,
         ThumbnailFallbacks = more.ThumbnailFallbacks.Count > 0 ? more.ThumbnailFallbacks : ThumbnailFallbacks,
     };
 
@@ -53,6 +59,7 @@ public sealed class QuirkProfiles
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
     };

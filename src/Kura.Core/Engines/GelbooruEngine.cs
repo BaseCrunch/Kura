@@ -21,12 +21,15 @@ public sealed partial class GelbooruEngine : BooruEngineBase
 
     public static bool UsesJson(ServerContext ctx) => ctx.Quirks.GelbooruJson == true;
 
+    /// <summary>DAPI root: the site itself, or a separate API host from the quirk profile.</summary>
+    private static string Api(ServerContext ctx) => (ctx.Quirks.ApiBase ?? ctx.BaseUrl).TrimEnd('/');
+
     public override Uri BuildPostsUrl(ServerContext ctx, PreparedQuery query, int page) =>
-        MakeUri($"{ctx.BaseUrl}/index.php?page=dapi&s=post&q=index{(UsesJson(ctx) ? "&json=1" : "")}" +
+        MakeUri($"{Api(ctx)}/index.php?page=dapi&s=post&q=index{(UsesJson(ctx) ? "&json=1" : "")}" +
                 $"&limit={PageSize}&pid={page}&tags={Enc(query.Text)}{AuthSuffix(ctx)}");
 
     public override Uri BuildPingUrl(ServerContext ctx) =>
-        MakeUri($"{ctx.BaseUrl}/index.php?page=dapi&s=post&q=index{(UsesJson(ctx) ? "&json=1" : "")}&limit=1{AuthSuffix(ctx)}");
+        MakeUri($"{Api(ctx)}/index.php?page=dapi&s=post&q=index{(UsesJson(ctx) ? "&json=1" : "")}&limit=1{AuthSuffix(ctx)}");
 
     public override Uri? BuildAutocompleteUrl(ServerContext ctx, string term) => ctx.Quirks.NativeAutocomplete
         ? MakeUri($"{ctx.BaseUrl}/index.php?page=autocomplete2&term={Enc(term)}&type=tag_query&limit=10{AuthSuffix(ctx)}")
@@ -75,8 +78,18 @@ public sealed partial class GelbooruEngine : BooruEngineBase
 
     internal PostPage ParseJson(JsonElement root, ServerContext ctx)
     {
-        // A bare string is a server message, e.g. "Too deep! Pull it back some." (SPEC 1.6).
-        if (root.ValueKind == JsonValueKind.String) return new PostPage([], 0, ServerMessage: root.GetString());
+        // A bare string is a server message, e.g. "Too deep! Pull it back some." (SPEC 1.6). Missing or wrong
+        // credentials come back the same way, but they are an error, not an empty result.
+        if (root.ValueKind == JsonValueKind.String)
+        {
+            var message = root.GetString() ?? "";
+            if (message.Contains("authentication", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("api key", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("api_key", StringComparison.OrdinalIgnoreCase))
+                throw new Net.BooruRequestException(Net.FailureKind.InvalidCredentials,
+                    $"This site needs your API key and user ID. Server says: {message}");
+            return new PostPage([], 0, ServerMessage: message);
+        }
 
         JsonElement array;
         if (root.ValueKind == JsonValueKind.Array) array = root;
@@ -186,13 +199,16 @@ public sealed partial class GelbooruEngine : BooruEngineBase
         var result = new List<TagSuggestion>();
         foreach (var e in doc.RootElement.EnumerateArray())
         {
-            if (e.Str("type") is { } type && type != "tag") continue; // autocomplete2 also returns users/pools
+            // gelbooru.com's autocomplete2 sends type=tag plus a category and also returns users/pools;
+            // rule34.xxx sends the category itself in "type" (e.g. "character").
+            var type = e.Str("type");
+            if (type is "user" or "pool" or "forum" or "wiki") continue;
             var name = e.Str("value");
             if (name is null) continue;
             long count = e.Long("post_count");
             if (count == 0 && e.Str("label") is { } label && CountInLabel().Match(label) is { Success: true } m)
                 count = long.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
-            result.Add(new TagSuggestion(Lenient.Html(name)!, MapCategory(e.Str("category")), count));
+            result.Add(new TagSuggestion(Lenient.Html(name)!, MapCategory(e.Str("category") ?? type), count));
         }
         return result;
     }

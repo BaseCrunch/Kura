@@ -69,6 +69,48 @@ public sealed class BooruClient(KuraHttp http, EngineRegistry engines, QuirkProf
         }
     }
 
+    /// <summary>
+    /// Finds which engine a site runs: the known-site hint first, then each engine's first page. A site that
+    /// answers with posts, or with a server message such as "missing authentication", counts as a match.
+    /// Hydrus is skipped (a local client, never auto-detected).
+    /// </summary>
+    public async Task<EngineType?> DetectEngineAsync(Server server, ServerCredentials credentials, CancellationToken ct)
+    {
+        var hint = quirks.Resolve(server.Host).Engine;
+        EngineType[] order =
+        [
+            EngineType.Danbooru2, EngineType.Gelbooru, EngineType.E621, EngineType.Danbooru1, EngineType.Philomena,
+            EngineType.BooruOnRails, EngineType.Kemono, EngineType.Shimmie, EngineType.Gelbooru011,
+        ];
+        var candidates = (hint is { } h ? order.Prepend(h) : order).Distinct().Where(engines.IsSupported);
+        foreach (var engine in candidates)
+        {
+            ct.ThrowIfCancellationRequested();
+            var probe = new Server { Id = server.Id, Name = server.Name, Url = server.Url, Engine = engine, Username = server.Username };
+            var ctx = CreateContext(probe, credentials);
+            try
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromSeconds(12));
+                var e = engines.Get(engine);
+                var page = await FetchPostsAsync(ctx, Prepare(ctx, ""), e.FirstPage, cts.Token).ConfigureAwait(false);
+                if (page.Posts.Count > 0 || page.ServerMessage is not null) return engine;
+            }
+            catch (BooruRequestException ex) when (ex.Kind == FailureKind.InvalidCredentials)
+            {
+                return engine; // the right API, just needs a key
+            }
+            catch (Exception ex) when (ex is BooruRequestException or OperationCanceledException && !ct.IsCancellationRequested)
+            {
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The engine a known site runs, if Kura knows it.</summary>
+    public EngineType? KnownEngine(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var u) ? quirks.Resolve(u.Host).Engine : null;
+
     /// <summary>Validates the URL, engine type and credentials with a one-post request.</summary>
     public async Task<string> PingAsync(ServerContext ctx, CancellationToken ct)
     {
